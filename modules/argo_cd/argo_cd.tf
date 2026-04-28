@@ -6,10 +6,10 @@ resource "helm_release" "argocd" {
   create_namespace = true
   version          = "6.7.11"
 
-  set = [{
+  set {
     name  = "server.insecure"
     value = "true"
-  }]
+  }
 }
 
 resource "helm_release" "argocd_apps" {
@@ -18,8 +18,8 @@ resource "helm_release" "argocd_apps" {
   namespace  = var.namespace
   depends_on = [helm_release.argocd]
 
-  set = [{
+  set {
     name  = "githubRepo"
     value = var.github_repo
-  }]
+  }
 }

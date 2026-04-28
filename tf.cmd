@@ -43,6 +43,7 @@ if "%~1"=="tflocal" (
         -e AWS_SESSION_TOKEN=dummy ^
         -e AWS_DEFAULT_REGION=eu-central-1 ^
         -e LOCALSTACK_AUTH_TOKEN="%LOCALSTACK_AUTH_TOKEN%" ^
+        -e TF_VAR_localstack_ip="!LS_IP!" ^
         ironkage-iac-toolchain-89:latest %*
 ) else (
 :: 2. Бойове середовище (Terragrunt, Helm, AWS CLI)

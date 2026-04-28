@@ -28,3 +28,9 @@ variable "github_repo" {
   description = "URL GitHub репозиторію для підключення GitOps"
   type        = string
 }
+
+variable "localstack_ip" {
+  description = "Динамічний IP LocalStack"
+  type        = string
+  default     = "172.18.0.2"
+}

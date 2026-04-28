@@ -130,25 +130,19 @@ module "argo_cd" {
 }
 
 # ---------------------------------------------
-# НАЛАШТУВАННЯ HELM ПРОВАЙДЕРА (HELM v3 SYNTAX)
+# НАЛАШТУВАННЯ HELM ПРОВАЙДЕРА (ФІНАЛЬНЕ)
 # ---------------------------------------------
-data "aws_eks_cluster" "main" {
-  name       = module.eks[0].cluster_name
-  depends_on = [module.eks]
-}
-
 data "aws_eks_cluster_auth" "main" {
   name       = module.eks[0].cluster_name
   depends_on = [module.eks]
 }
 
 provider "helm" {
-  kubernetes = {
-    host                   = replace(data.aws_eks_cluster.main.endpoint, "localhost.localstack.cloud", "172.18.0.2")
-    cluster_ca_certificate = base64decode(data.aws_eks_cluster.main.certificate_authority[0].data)
+  kubernetes {
+    # Використовуємо динамічний IP замість хардкоду 172.18.0.2
+    host                   = var.environment == "dev" ? replace(module.eks[0].cluster_endpoint, "localhost.localstack.cloud", var.localstack_ip) : module.eks[0].cluster_endpoint
+    cluster_ca_certificate = base64decode(module.eks[0].cluster_certificate_authority_data)
     token                  = data.aws_eks_cluster_auth.main.token
-
-    # Вимикаємо перевірку ТІЛЬКИ для dev (LocalStack). На prod вона буде увімкнена (false)
     insecure               = var.environment == "dev" ? true : false
   }
 }
