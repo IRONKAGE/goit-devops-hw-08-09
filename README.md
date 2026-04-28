@@ -103,3 +103,130 @@ goit-devops-hw-08-09/
 >❗️ УВАГА! ⚠️ При роботі з хмарними провайдерами завжди пам'ятайте: невикористані ресурси можуть призвести до значних витрат. Щоб уникнути непередбачуваних рахунків, після перевірки вашого коду обов'язково видаляйте створені ресурси. Використовуйте команду terraform destroy.
 
 >❗️ УВАГА! ⚠️ Пам'ятайте порядок запуску інфраструктури після видалення! При видаленні всієї інфраструктури за допомогою terraform destroy ви також видаляєте S3-бакет і DynamoDB-таблицю, які використовуються для збереження Terraform стейту.
+
+---
+
+## 🚀 Інструкція з тестування CI/CD (Jenkins + ArgoCD + GitOps)
+
+Цей проєкт реалізовано в режимі **Enterprise God Mode**, що дозволяє відтворити повний цикл автоматизації як локально (через LocalStack Pro), так і в реальному середовищі AWS.
+
+---
+
+### 💻 ЕТАП 1: Локальне тестування (LocalStack Pro)
+
+Ідеально для перевірки логіки Terraform, Helm-чартів та Jenkins Pipeline без витрат у хмарі.
+
+#### 1. Запуск інфраструктури
+
+Переконайтеся, що у вашому `.env` додано `LOCALSTACK_AUTH_TOKEN`.
+
+```bash
+# Розгортання ізольованого середовища для теми 8-9
+make deploy-local dev
+```
+
+*Terraform створить VPC, ECR, EKS (k3d), Jenkins та ArgoCD з префіксами `-89`.*
+
+#### 2. Доступ до Jenkins
+
+Слід виконати команду:
+
+```bash
+make open-jenkins
+```
+
+або
+
+Jenkins налаштований через **JCasC** (Configuration as Code) і вже має готовий шаблон для Kaniko-агента.
+
+```bash
+# Прокидаємо порт (в окремому терміналі)
+kubectl port-forward svc/jenkins-89 -n jenkins-89 8080:8080
+```
+
+* **URL:** `http://localhost:8080`
+* **Login:** `admin`
+* **Password:** `admin_password_123` (задано в values.yaml)
+
+**Налаштування GitHub:**
+
+1. Перейдіть у **Manage Jenkins** -> **Credentials** -> **Global** -> **Add Credentials**.
+2. Type: `Username with password`.
+3. ID: `github-cred` (ОБОВ'ЯЗКОВО саме такий ID).
+4. Username: Ваш логін GitHub.
+5. Password: Ваш GitHub Personal Access Token (PAT).
+
+#### 3. Доступ до ArgoCD
+
+Слід виконати команду:
+
+```bash
+make open-argocd
+```
+
+або
+
+ArgoCD автоматично стежить за вашим репозиторієм завдяки патерну **App-of-Apps**.
+
+```bash
+# Отримання пароля адміністратора
+kubectl -n argocd-89 get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo
+
+# Прокидаємо порт (в окремому терміналі)
+kubectl port-forward svc/argocd-server-89 -n argocd-89 8081:80
+```
+
+- **URL:** `http://localhost:8081`
+- **Login:** `admin`
+
+---
+
+### ☁️ ЕТАП 2: Бойове тестування (Real AWS)
+
+Використовується для фінального деплою з реальною безпекою та EBS-дисками.
+
+#### 1. Деплой у хмару
+
+```bash
+# Створення продуктової інфраструктури з EBS CSI драйвером та логуванням
+make deploy-aws prod
+```
+
+#### 2. Налаштування Pipeline у Jenkins
+
+1. Створіть **New Item** -> **Pipeline** -> назва `django-enterprise-ci`.
+2. У налаштуваннях: `Pipeline script from SCM`.
+3. SCM: `Git` -> URL вашого репозиторію.
+4. Гілка: `*/main`.
+5. Script Path: `Jenkinsfile`.
+
+---
+
+### ⚙️ ЕТАП 3: Перевірка циклу (E2E Test)
+
+Щоб побачити магію автоматизації в дії, виконайте наступні кроки:
+
+1. **Зміна коду:** Внесіть будь-яку зміну в код Django (наприклад, коментар у `core/settings.py`).
+2. **Git Push:** `git commit -am "feat: god mode testing" && git push`.
+3. **Jenkins:** Запустіть пайплайн.
+    - Jenkins підніме **Kaniko-агент** у кластері.
+    - Kaniko збирає образ БЕЗ docker-сокета (Rootless) і пушить в **ECR**.
+    - Jenkins автоматично оновить тег образу в `charts/django-app/values.yaml` і зробить комміт у ваш GitHub.
+4. **ArgoCD:** Поверніться в інтерфейс ArgoCD. За 30-60 секунд (або після натискання `Sync`) він побачить оновлення в Git і автоматично оновить ваш застосунок у кластері (Rolling Update).
+
+---
+
+### 🧹 Очищення ресурсів
+
+Щоб не витрачати гроші (AWS) або ресурси ПК (LocalStack):
+
+```bash
+# Для хмари (AWS)
+make destroy-aws prod
+
+# Для локального середовища
+make destroy-local dev
+
+# Повне видалення кешів та Docker-образів
+make deep-clean
+```

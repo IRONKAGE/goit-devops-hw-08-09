@@ -21,9 +21,9 @@ endif
 VALID_ENVS   := dev prod
 DEFAULT_ENV  := dev
 REGION       := eu-central-1
-CLUSTER_NAME := ironkage-k8s-cluster
-APP_NAME     := django-app
-TOOLCHAIN_IMG:= ironkage-iac-toolchain:latest
+CLUSTER_NAME := ironkage-k8s-hw89-cluster
+APP_NAME     := django-app-hw89
+TOOLCHAIN_IMG:= ironkage-iac-toolchain-89:latest
 
 # 2. Зчитуємо аргументи
 CMD    := $(word 1, $(MAKECMDGOALS))
@@ -68,6 +68,8 @@ help:
 	@echo "  make test-local [env]            - План локального розгортання"
 	@echo "  make test-aws [env]              - План бойового розгортання (AWS)"
 	@echo "  make deploy-local [env]          - Деплой локально (LocalStack Pro)"
+	@echo "  make open-jenkins                - Відкрити UI Jenkins та прокинути порт"
+	@echo "  make open-argocd                 - Відкрити UI ArgoCD та прокинути порт"
 	@echo "  make deploy-aws [env]            - Бойовий деплой (ClusterIP)"
 	@echo "  make deploy-aws [env] [domain]   - Бойовий деплой (Ingress + TLS)"
 	@echo "  make destroy-local [env]         - Знищити локальні ресурси"
@@ -94,6 +96,44 @@ up: docker-ensure
 down:
 	@echo "[*] Зупинка LocalStack Pro..."
 	docker compose down
+
+# ==============================================================================
+# БРАУЗЕР (Кросплатформне відкриття)
+# ==============================================================================
+ifeq ($(OS),Windows_NT)
+	OPEN_CMD := start ""
+else
+	UNAME_S := $(shell uname -s)
+	ifeq ($(UNAME_S),Linux)
+		OPEN_CMD := xdg-open
+	endif
+	ifeq ($(UNAME_S),Darwin)
+		OPEN_CMD := open
+	endif
+endif
+
+# ==============================================================================
+# ШВИДКИЙ ДОСТУП ДО UI (God Mode)
+# ==============================================================================
+open-jenkins:
+	@echo "========================================"
+	@echo "🔑 ДОСТУП ДО JENKINS"
+	@echo "Логін: admin"
+	@echo "Пароль: admin_password_123"
+	@echo "========================================"
+	@echo "[*] Відкриваємо браузер та прокидаємо порт... (Натисніть Ctrl+C для виходу)"
+	@($(OPEN_CMD) "http://localhost:8080" &)
+	@$(TG_WRAPPER) kubectl port-forward svc/jenkins -n jenkins 8080:8080
+
+open-argocd:
+	@echo "========================================"
+	@echo "🔑 ДОСТУП ДО ARGOCD"
+	@echo "Логін: admin"
+	@echo "Пароль: $$( $(TG_WRAPPER) sh -c 'kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d' )"
+	@echo "========================================"
+	@echo "[*] Відкриваємо браузер та прокидаємо порт... (Натисніть Ctrl+C для виходу)"
+	@($(OPEN_CMD) "http://localhost:8081" &)
+	@$(TG_WRAPPER) kubectl port-forward svc/argocd-server -n argocd 8081:80
 
 # ==============================================================================
 # ТЕСТУВАННЯ (Dry-Run)

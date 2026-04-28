@@ -2,14 +2,14 @@
 # Обгортка для Mac/Linux (God Mode: LocalStack Pro + Real AWS + K8s)
 
 echo "[*] Перевірка/Збірка образу Toolchain..."
-docker build -t ironkage-iac-toolchain:latest -f Dockerfile.iac .
+docker build -t ironkage-iac-toolchain-89:latest -f Dockerfile.iac .
 
 echo "[+] Запуск команди: $@"
 
 # 1. Локальне середовище (LocalStack Pro)
 if [ "$1" = "tflocal" ]; then
     # Надійно отримуємо IP-адресу, щоб обійти баги Docker на Mac
-    LS_CONTAINER="localstack_main"
+    LS_CONTAINER="localstack_main_89"
     LS_NETWORK=$(docker inspect "$LS_CONTAINER" -f '{{range $k, $v := .NetworkSettings.Networks}}{{println $k}}{{end}}' 2>/dev/null | head -n 1)
     LS_IP=$(docker inspect "$LS_CONTAINER" 2>/dev/null | grep -E '"IPAddress": "[0-9]+\.' | head -n 1 | cut -d '"' -f 4)
 
@@ -31,7 +31,7 @@ if [ "$1" = "tflocal" ]; then
         -e AWS_SESSION_TOKEN=dummy \
         -e AWS_DEFAULT_REGION=eu-central-1 \
         -e LOCALSTACK_AUTH_TOKEN="${LOCALSTACK_AUTH_TOKEN}" \
-        ironkage-iac-toolchain:latest "$@"
+        ironkage-iac-toolchain-89:latest "$@"
 else
 # 2. Бойове середовище (Terragrunt, Helm, AWS CLI)
     # Створюємо папку .kube на хості, якщо її немає (щоб Docker не створив її під root)
@@ -43,5 +43,5 @@ else
         -v ~/.aws:/root/.aws \
         -v ~/.kube:/root/.kube \
         -e PYTHONUNBUFFERED=1 \
-        ironkage-iac-toolchain:latest "$@"
+        ironkage-iac-toolchain-89:latest "$@"
 fi

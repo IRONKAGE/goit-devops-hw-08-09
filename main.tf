@@ -1,4 +1,20 @@
 # ==========================================
+# ІНІЦІАЛІЗАЦІЯ ПРОВАЙДЕРІВ
+# ==========================================
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = ">= 5.0"
+    }
+    helm = {
+      source  = "hashicorp/helm"
+      version = ">= 2.12"
+    }
+  }
+}
+
+# ==========================================
 # 1. Виклик модуля VPC
 # ==========================================
 module "vpc" {
@@ -67,13 +83,12 @@ resource "aws_iam_role_policy_attachment" "eks_container_registry_policy" {
 # ==========================================
 # 4. Виклик модуля EKS
 # ==========================================
-# Виклик модуля EKS (Feature Toggle)
 module "eks" {
   source = "./modules/eks"
 
-  # Якщо enable_eks = false, Terraform просто проігнорує цей модуль
   count  = var.enable_eks ? 1 : 0
 
+  environment               = var.environment
   cluster_name              = var.cluster_name
   cluster_version           = var.cluster_version
   subnet_ids                = module.vpc.private_subnet_ids
@@ -93,4 +108,47 @@ module "eks" {
     aws_iam_role_policy_attachment.eks_cni_policy,
     aws_iam_role_policy_attachment.eks_container_registry_policy
   ]
+}
+
+# ==========================================
+# 5. Виклик модуля Jenkins
+# ==========================================
+module "jenkins" {
+  source     = "./modules/jenkins"
+  namespace  = "jenkins"
+  depends_on = [module.eks]
+}
+
+# ==========================================
+# 6. Виклик модуля ArgoCD
+# ==========================================
+module "argo_cd" {
+  source      = "./modules/argo_cd"
+  namespace   = "argocd"
+  github_repo = var.github_repo
+  depends_on  = [module.eks]
+}
+
+# ---------------------------------------------
+# НАЛАШТУВАННЯ HELM ПРОВАЙДЕРА (HELM v3 SYNTAX)
+# ---------------------------------------------
+data "aws_eks_cluster" "main" {
+  name       = module.eks[0].cluster_name
+  depends_on = [module.eks]
+}
+
+data "aws_eks_cluster_auth" "main" {
+  name       = module.eks[0].cluster_name
+  depends_on = [module.eks]
+}
+
+provider "helm" {
+  kubernetes = {
+    host                   = replace(data.aws_eks_cluster.main.endpoint, "localhost.localstack.cloud", "172.18.0.2")
+    cluster_ca_certificate = base64decode(data.aws_eks_cluster.main.certificate_authority[0].data)
+    token                  = data.aws_eks_cluster_auth.main.token
+
+    # Вимикаємо перевірку ТІЛЬКИ для dev (LocalStack). На prod вона буде увімкнена (false)
+    insecure               = var.environment == "dev" ? true : false
+  }
 }

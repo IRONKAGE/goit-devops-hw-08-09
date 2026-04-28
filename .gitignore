@@ -63,7 +63,7 @@ setup_modern.log
 localstack_providers_override.tf
 
 # LocalStack Pro persistent data (Бази даних, стейт хмари локально)
-volume/
+volume_89/
 
 # Краш-логи
 crash.log

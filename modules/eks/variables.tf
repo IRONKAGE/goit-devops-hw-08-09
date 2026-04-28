@@ -48,3 +48,8 @@ variable "enabled_cluster_log_types" {
   type        = list(string)
   default     = []
 }
+
+variable "environment" {
+  description = "Середовище (dev або prod) для визначення встановлення EBS CSI"
+  type        = string
+}

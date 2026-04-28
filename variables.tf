@@ -23,3 +23,8 @@ variable "enable_eks" {
   type        = bool
   default     = true
 }
+
+variable "github_repo" {
+  description = "URL GitHub репозиторію для підключення GitOps"
+  type        = string
+}

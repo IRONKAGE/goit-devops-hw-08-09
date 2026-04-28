@@ -3,14 +3,14 @@ setlocal EnableDelayedExpansion
 :: Обгортка для Windows (God Mode: LocalStack Pro + Real AWS + K8s)
 
 echo [*] Перевірка/Збірка образу Toolchain...
-docker build -q -t ironkage-iac-toolchain:latest -f Dockerfile.iac .
+docker build -q -t ironkage-iac-toolchain-89:latest -f Dockerfile.iac .
 
 echo [+] Запуск команди: %*
 
 :: 1. Локальне середовище (LocalStack Pro)
 if "%~1"=="tflocal" (
     :: Жорстко фіксуємо ім'я контейнера
-    SET "LS_CONTAINER=localstack_main"
+    SET "LS_CONTAINER=localstack_main_89"
 
     :: Отримуємо ПЕРШУ мережу (обходимо баг з додатковими мережами від k3d)
     SET "LS_NETWORK="
@@ -43,7 +43,7 @@ if "%~1"=="tflocal" (
         -e AWS_SESSION_TOKEN=dummy ^
         -e AWS_DEFAULT_REGION=eu-central-1 ^
         -e LOCALSTACK_AUTH_TOKEN="%LOCALSTACK_AUTH_TOKEN%" ^
-        ironkage-iac-toolchain:latest %*
+        ironkage-iac-toolchain-89:latest %*
 ) else (
 :: 2. Бойове середовище (Terragrunt, Helm, AWS CLI)
     if not exist "%USERPROFILE%\.kube" mkdir "%USERPROFILE%\.kube"
@@ -53,5 +53,5 @@ if "%~1"=="tflocal" (
         -v "%USERPROFILE%\.aws":/root/.aws ^
         -v "%USERPROFILE%\.kube":/root/.kube ^
         -e PYTHONUNBUFFERED=1 ^
-        ironkage-iac-toolchain:latest %*
+        ironkage-iac-toolchain-89:latest %*
 )
