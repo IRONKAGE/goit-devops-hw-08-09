@@ -10,8 +10,8 @@ resource "helm_release" "jenkins" {
     file("${path.module}/values.yaml")
   ]
 
-  set {
+  set = [{
     name  = "controller.adminPassword"
     value = "admin_password_123"
-  }
+  }]
 }

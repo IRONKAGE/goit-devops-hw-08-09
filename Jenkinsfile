@@ -23,13 +23,15 @@ pipeline {
 
                     // Якщо це AWS (prod), дістаємо Account ID динамічно!
                     if (params.DEPLOY_ENV == 'prod') {
-                        container('aws-cli') { // <-- Викликаємо потрібний контейнер
+                        container('aws-cli') {
                             def accountId = sh(script: 'aws sts get-caller-identity --query Account --output text', returnStdout: true).trim()
                             env.ECR_REGISTRY = "${accountId}.dkr.ecr.${props.AWS_REGION}.amazonaws.com"
+                            env.KANIKO_EXTRA_ARGS = "" // Для AWS Prod використовуємо безпечний HTTPS
                         }
                     } else {
                         // Для LocalStack Pro просто залишаємо локальну адресу
                         env.ECR_REGISTRY = props.ECR_REGISTRY
+                        env.KANIKO_EXTRA_ARGS = "--insecure --insecure-pull" // Вимикаємо перевірку TLS для LocalStack Pro
                     }
                 }
                 echo "ECR Address: ${env.ECR_REGISTRY}"
@@ -46,7 +48,8 @@ pipeline {
                       --dockerfile $(pwd)/Dockerfile \
                       --destination ${ECR_REGISTRY}/${REPO_NAME}:${IMAGE_TAG} \
                       --destination ${ECR_REGISTRY}/${REPO_NAME}:latest \
-                      --cache=true
+                      --cache=true \
+                      ${KANIKO_EXTRA_ARGS}
                     '''
                 }
             }

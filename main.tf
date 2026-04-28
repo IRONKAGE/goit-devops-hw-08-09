@@ -76,7 +76,7 @@ resource "aws_iam_role_policy_attachment" "eks_cni_policy" {
   role       = aws_iam_role.eks_node_role.name
 }
 resource "aws_iam_role_policy_attachment" "eks_container_registry_policy" {
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPowerUser"
   role       = aws_iam_role.eks_node_role.name
 }
 
@@ -138,8 +138,7 @@ data "aws_eks_cluster_auth" "main" {
 }
 
 provider "helm" {
-  kubernetes {
-    # Використовуємо динамічний IP замість хардкоду 172.18.0.2
+  kubernetes = {
     host                   = var.environment == "dev" ? replace(module.eks[0].cluster_endpoint, "localhost.localstack.cloud", var.localstack_ip) : module.eks[0].cluster_endpoint
     cluster_ca_certificate = base64decode(module.eks[0].cluster_certificate_authority_data)
     token                  = data.aws_eks_cluster_auth.main.token

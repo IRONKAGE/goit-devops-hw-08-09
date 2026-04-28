@@ -8,7 +8,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: { { .Values.githubRepo | quote } }
+    repoURL: {{ .Values.githubRepo | quote }}
     targetRevision: main
     path: charts/django-app
   destination:
