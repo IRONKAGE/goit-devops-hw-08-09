@@ -17,6 +17,6 @@ spec:
   syncPolicy:
     automated:
       prune: true
-      selfHeal: true # Автоматичне відновлення стану, якщо хтось зламає K8s руками
+      selfHeal: true
     syncOptions:
       - CreateNamespace=true

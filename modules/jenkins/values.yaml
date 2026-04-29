@@ -1,11 +1,12 @@
 controller:
-  adminUser: "admin"
-  adminPassword: "admin_password_123"
+  admin:
+    username: "admin"
+    password: "admin_password_123"
   installPlugins:
-    - kubernetes:4264.v134c017502c3
-    - workflow-aggregator:596.v8c21c963d92d
-    - git:5.2.1
-    - configuration-as-code:1775.v810dc950b_514
+    - kubernetes
+    - workflow-aggregator
+    - git
+    - configuration-as-code
 
   # Конфігурація як код (JCasC)
   JCasC:

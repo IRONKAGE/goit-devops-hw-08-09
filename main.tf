@@ -14,9 +14,6 @@ terraform {
   }
 }
 
-# ==========================================
-# 1. Виклик модуля VPC
-# ==========================================
 module "vpc" {
   source             = "./modules/vpc"
   environment        = var.environment
@@ -28,18 +25,12 @@ module "vpc" {
   vpc_name           = "${var.project_name}-${var.environment}-vpc"
 }
 
-# ==========================================
-# 2. Виклик модуля ECR
-# ==========================================
 module "ecr" {
   source       = "./modules/ecr"
   ecr_name     = var.ecr_repo_name
   scan_on_push = var.scan_on_push
 }
 
-# ==========================================
-# 3. IAM Ролі для EKS (Обов'язково для AWS)
-# ==========================================
 resource "aws_iam_role" "eks_cluster_role" {
   name = "${var.cluster_name}-cluster-role"
   assume_role_policy = jsonencode({
@@ -75,17 +66,15 @@ resource "aws_iam_role_policy_attachment" "eks_cni_policy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
   role       = aws_iam_role.eks_node_role.name
 }
+
+# ВИПРАВЛЕНО: Замінено ReadOnly на PowerUser, щоб Jenkins міг пушити в AWS Prod
 resource "aws_iam_role_policy_attachment" "eks_container_registry_policy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPowerUser"
   role       = aws_iam_role.eks_node_role.name
 }
 
-# ==========================================
-# 4. Виклик модуля EKS
-# ==========================================
 module "eks" {
   source = "./modules/eks"
-
   count  = var.enable_eks ? 1 : 0
 
   environment               = var.environment
@@ -110,18 +99,12 @@ module "eks" {
   ]
 }
 
-# ==========================================
-# 5. Виклик модуля Jenkins
-# ==========================================
 module "jenkins" {
   source     = "./modules/jenkins"
   namespace  = "jenkins"
   depends_on = [module.eks]
 }
 
-# ==========================================
-# 6. Виклик модуля ArgoCD
-# ==========================================
 module "argo_cd" {
   source      = "./modules/argo_cd"
   namespace   = "argocd"
@@ -130,8 +113,13 @@ module "argo_cd" {
 }
 
 # ---------------------------------------------
-# НАЛАШТУВАННЯ HELM ПРОВАЙДЕРА (ФІНАЛЬНЕ)
+# НАЛАШТУВАННЯ HELM ПРОВАЙДЕРА
 # ---------------------------------------------
+data "aws_eks_cluster" "main" {
+  name       = module.eks[0].cluster_name
+  depends_on = [module.eks]
+}
+
 data "aws_eks_cluster_auth" "main" {
   name       = module.eks[0].cluster_name
   depends_on = [module.eks]
@@ -139,8 +127,11 @@ data "aws_eks_cluster_auth" "main" {
 
 provider "helm" {
   kubernetes = {
-    host                   = var.environment == "dev" ? replace(module.eks[0].cluster_endpoint, "localhost.localstack.cloud", var.localstack_ip) : module.eks[0].cluster_endpoint
-    cluster_ca_certificate = base64decode(module.eks[0].cluster_certificate_authority_data)
+    host                   = replace(data.aws_eks_cluster.main.endpoint, "localhost.localstack.cloud", "172.18.0.2")
+
+    # ВИПРАВЛЕНО: Якщо це dev (insecure=true), передаємо null (нічого). Якщо prod - даємо сертифікат.
+    cluster_ca_certificate = var.environment == "dev" ? null : base64decode(data.aws_eks_cluster.main.certificate_authority[0].data)
+
     token                  = data.aws_eks_cluster_auth.main.token
     insecure               = var.environment == "dev" ? true : false
   }

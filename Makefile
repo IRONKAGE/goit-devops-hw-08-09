@@ -117,23 +117,18 @@ endif
 # ==============================================================================
 open-jenkins:
 	@echo "========================================"
-	@echo "🔑 ДОСТУП ДО JENKINS"
-	@echo "Логін: admin"
-	@echo "Пароль: admin_password_123"
+	@echo "⏳ Отримання Kubeconfig з LocalStack EKS..."
+	@echo "🌐 Після запуску відкрийте браузер: http://localhost:8080"
 	@echo "========================================"
-	@echo "[*] Відкриваємо браузер та прокидаємо порт... (Натисніть Ctrl+C для виходу)"
-	@($(OPEN_CMD) "http://localhost:8080" &)
-	@$(TG_WRAPPER) kubectl port-forward svc/jenkins -n jenkins 8080:8080
+	./tf.sh bash -c "export AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test AWS_DEFAULT_REGION=eu-central-1 && aws --endpoint-url=http://172.18.0.2:4566 eks update-kubeconfig --region eu-central-1 --name ironkage-k8s-hw89-dev && sed -i 's/localhost.localstack.cloud/172.18.0.2/g' /root/.kube/config && kubectl port-forward --insecure-skip-tls-verify --address 0.0.0.0 svc/jenkins -n jenkins 8080:8080"
 
 open-argocd:
 	@echo "========================================"
-	@echo "🔑 ДОСТУП ДО ARGOCD"
-	@echo "Логін: admin"
-	@echo "Пароль: $$( $(TG_WRAPPER) sh -c 'kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d' )"
+	@echo "⏳ Отримання Kubeconfig з LocalStack EKS..."
+	@echo "🌐 Після запуску відкрийте браузер: https://localhost:8081"
+	@echo "🔑 Щоб дізнатися пароль ArgoCD, виконайте: make get-argocd-pass"
 	@echo "========================================"
-	@echo "[*] Відкриваємо браузер та прокидаємо порт... (Натисніть Ctrl+C для виходу)"
-	@($(OPEN_CMD) "http://localhost:8081" &)
-	@$(TG_WRAPPER) kubectl port-forward svc/argocd-server -n argocd 8081:80
+	./tf.sh bash -c "export AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test AWS_DEFAULT_REGION=eu-central-1 && aws --endpoint-url=http://172.18.0.2:4566 eks update-kubeconfig --region eu-central-1 --name ironkage-k8s-hw89-dev && sed -i 's/localhost.localstack.cloud/172.18.0.2/g' /root/.kube/config && kubectl port-forward --insecure-skip-tls-verify --address 0.0.0.0 svc/argocd-server -n argocd 8081:443"
 
 # ==============================================================================
 # ТЕСТУВАННЯ (Dry-Run)
