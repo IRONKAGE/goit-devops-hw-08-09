@@ -38,11 +38,14 @@ else
     # Створюємо папку .kube на хості, якщо її немає (щоб Docker не створив її під root)
     mkdir -p ~/.kube
 
-    # Монтуємо РЕАЛЬНІ ключі AWS та конфіги Kubernetes
+    # Монтуємо РЕАЛЬНІ ключі AWS, конфіги Kubernetes та ВІДКРИВАЄМО ПОРТИ
     docker run --rm -it \
+        --network "goit-devops-hw-08-09_default" \
         -v "$(pwd)":/workspace \
         -v ~/.aws:/root/.aws \
         -v ~/.kube:/root/.kube \
+        -p 8080:8080 \
+        -p 8081:8081 \
         -e PYTHONUNBUFFERED=1 \
         ironkage-iac-toolchain-89:latest "$@"
 fi

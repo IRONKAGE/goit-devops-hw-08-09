@@ -4,7 +4,6 @@ resource "helm_release" "jenkins" {
   chart            = "jenkins"
   namespace        = var.namespace
   create_namespace = true
-  version          = "5.0.14"
 
   replace          = true
   cleanup_on_fail  = true
