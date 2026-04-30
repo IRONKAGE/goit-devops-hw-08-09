@@ -9,10 +9,7 @@ resource "helm_release" "jenkins" {
   cleanup_on_fail  = true
   timeout          = 600
 
-  # ==============================================================
-  # МАГІЯ ТУТ: Terraform не буде чекати 10 хв. Скрипт пройде миттєво!
-  # ==============================================================
-  wait             = false
+  wait             = true
 
   values = [
     file("${path.module}/values.yaml")
